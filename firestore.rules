@@ -1,0 +1,69 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Only the owner's verified Google account counts as admin.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email == 'vimukthih55@gmail.com'
+        && request.auth.token.email_verified == true;
+    }
+
+    function str(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+
+    // What a visitor is allowed to send through the public order form.
+    // Note: 'service' is a reserved word in the rules language, so it is written d['service'].
+    function validPublicOrder(d) {
+      return d.keys().hasOnly(['name', 'phone', 'email', 'service', 'details', 'deadline', 'status', 'paid', 'source', 'createdAt'])
+        && d.keys().hasAll(['name', 'phone', 'service', 'details', 'status', 'paid', 'createdAt'])
+        && str(d.name, 1, 80)
+        && str(d.phone, 6, 24)
+        && (!('email' in d) || str(d.email, 0, 120))
+        && str(d['service'], 1, 80)
+        && str(d.details, 1, 2000)
+        && (!('deadline' in d) || str(d.deadline, 0, 40))
+        && (!('source' in d) || d.source == 'website')
+        && d.status == 'new'
+        && d.paid == false
+        && d.createdAt == request.time;
+    }
+
+    // Portfolio list (small preview pictures): anyone can look, only the owner can change.
+    match /works/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Full-size pictures: anyone can open one by its id, only the owner can list or change them.
+    match /workImages/{id} {
+      allow get: if true;
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // Site details (about, contact, services): anyone can read, only the owner can change.
+    match /settings/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Orders: visitors can only create a new one, never read or change any.
+    match /orders/{id} {
+      allow create: if isAdmin() || validPublicOrder(request.resource.data);
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Customers: private to the owner.
+    match /customers/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // Everything else is locked.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
