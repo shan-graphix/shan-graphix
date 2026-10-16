@@ -1,11 +1,18 @@
 import { useEffect, useState } from 'react'
-import { animate } from 'framer-motion'
 
-export function useCountUp(value, duration = 0.9) {
+export function useCountUp(value, duration = 700) {
   const [n, setN] = useState(0)
   useEffect(() => {
-    const controls = animate(0, Number(value) || 0, { duration, ease: 'easeOut', onUpdate: (v) => setN(Math.round(v)) })
-    return () => controls.stop()
+    const target = Number(value) || 0
+    let raf
+    const start = performance.now()
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration)
+      setN(Math.round(target * (1 - Math.pow(1 - t, 3))))
+      if (t < 1) raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [value, duration])
   return n
 }

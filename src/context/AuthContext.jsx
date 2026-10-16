@@ -14,21 +14,20 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState('')
   const idle = useRef()
 
-  useEffect(
-    () =>
-      onAuthStateChanged(auth, async (u) => {
-        if (u && !isOwner(u)) {
-          // Any other Google account is signed straight back out.
-          await signOut(auth)
-          setError('That account is not allowed to sign in here.')
-          setUser(null)
-        } else {
-          setUser(u)
-        }
-        setLoading(false)
-      }),
-    []
-  )
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
+      if (u && !isOwner(u)) {
+        // Any other Google account is signed straight back out.
+        await signOut(auth)
+        setError('That account is not allowed to sign in here.')
+        setUser(null)
+      } else {
+        setUser(u)
+      }
+      setLoading(false)
+    })
+    return () => typeof unsub === 'function' && unsub()
+  }, [])
 
   // Sign out automatically after a period with no activity.
   useEffect(() => {
@@ -56,9 +55,9 @@ export function AuthProvider({ children }) {
       if (e.code === 'auth/popup-blocked') return signInWithRedirect(auth, provider)
       if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') return
       if (e.code === 'auth/unauthorized-domain')
-        return setError('This website address is not authorised yet. Add it under Firebase > Authentication > Settings > Authorized domains.')
+        return setError('This website address is not authorised yet. Add it in Firebase under Authentication, Settings, Authorized domains.')
       if (e.code === 'auth/operation-not-allowed')
-        return setError('Google sign-in is not enabled. Turn it on in Firebase > Authentication > Sign-in method.')
+        return setError('Google sign-in is not enabled. Turn it on in Firebase under Authentication, Sign-in method.')
       setError('Sign-in failed. Please try again.')
     }
   }, [])

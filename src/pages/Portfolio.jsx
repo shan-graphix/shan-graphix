@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ImageOff } from 'lucide-react'
-import { useCollection } from '../hooks/useFirestore.js'
+import { useWorks } from '../context/PublicData.jsx'
 import { CATEGORIES } from '../config.js'
 import { Chips, EmptyState, PageHead, Skeleton } from '../components/ui.jsx'
 import Lightbox from '../components/Lightbox.jsx'
 
 export default function Portfolio() {
-  const { items: works, loading } = useCollection('works', 'order')
+  const { works, loading } = useWorks()
   const loc = useLocation()
   const navigate = useNavigate()
   const [cat, setCat] = useState('All')
@@ -17,7 +16,7 @@ export default function Portfolio() {
   const cats = useMemo(() => ['All', ...CATEGORIES.filter((c) => works.some((w) => w.category === c))], [works])
   const list = useMemo(() => (cat === 'All' ? works : works.filter((w) => w.category === cat)), [works, cat])
 
-  // Coming from the home page with a work selected
+  // Arriving from the home page with one design selected
   useEffect(() => {
     const id = loc.state?.open
     if (id && works.length) {
@@ -25,12 +24,12 @@ export default function Portfolio() {
       setOpen(works.findIndex((w) => w.id === id))
       navigate(loc.pathname, { replace: true, state: null })
     }
-  }, [loc.state, works])
+  }, [loc.state, works, loc.pathname, navigate])
 
   return (
-    <>
-      <PageHead title="Our work" sub="Tap a design to view it full size." />
-      {cats.length > 2 && <Chips id="work" items={cats} value={cat} onChange={setCat} />}
+    <div className="container inner">
+      <PageHead title="Our work" sub="Select a design to view it full size." />
+      {cats.length > 2 && <Chips items={cats} value={cat} onChange={setCat} />}
 
       {loading ? (
         <div className="masonry">
@@ -41,34 +40,20 @@ export default function Portfolio() {
       ) : list.length === 0 ? (
         <EmptyState icon={ImageOff} title="Nothing here yet" text="New designs will show up here soon." />
       ) : (
-        <motion.div className="masonry" layout>
+        <div className="masonry">
           {list.map((w, i) => (
-            <motion.button
-              key={w.id}
-              layout
-              className="m-item card press"
-              onClick={() => setOpen(i)}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: Math.min(i, 8) * 0.04, type: 'spring', stiffness: 260, damping: 24 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <img
-                src={w.thumb}
-                alt={w.title}
-                loading="lazy"
-                style={w.width && w.height ? { aspectRatio: `${w.width} / ${w.height}` } : undefined}
-              />
+            <button key={w.id} className="m-item" onClick={() => setOpen(i)}>
+              <img src={w.thumb} alt={w.title} loading="lazy" style={w.width && w.height ? { aspectRatio: `${w.width} / ${w.height}` } : undefined} />
               <span className="m-cap">
                 <strong>{w.title}</strong>
                 <small>{w.category}</small>
               </span>
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
       )}
 
       <Lightbox works={list} index={open} onIndex={setOpen} onClose={() => setOpen(null)} />
-    </>
+    </div>
   )
 }

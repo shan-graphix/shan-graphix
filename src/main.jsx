@@ -5,7 +5,7 @@ import App from './App.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import './styles.css'
 
-// If something unexpected breaks, show a message instead of a frozen page.
+// Last safety net: if something unexpected breaks the whole app, show a message with a reload button.
 class Boundary extends Component {
   state = { error: null }
   static getDerivedStateFromError(error) {

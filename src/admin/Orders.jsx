@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '../lib/motion.jsx'
 import { Inbox, Plus } from 'lucide-react'
-import { useCollection } from '../hooks/useFirestore.js'
+import { useAdminData } from '../context/AdminData.jsx'
 import { STATUSES } from '../config.js'
 import { Chips, EmptyState, PageHead, StatusBadge } from '../components/ui.jsx'
 import { money, timeAgo } from '../lib/format.js'
@@ -10,7 +10,7 @@ import OrderSheet from './OrderSheet.jsx'
 const FILTERS = [{ id: 'all', label: 'All' }, ...STATUSES, { id: 'unpaid', label: 'Unpaid' }]
 
 export default function Orders({ orders }) {
-  const { items: customers } = useCollection('customers', 'name')
+  const { customers } = useAdminData()
   const [filter, setFilter] = useState('all')
   const [sheet, setSheet] = useState({ open: false, order: null })
 
@@ -23,7 +23,7 @@ export default function Orders({ orders }) {
   return (
     <>
       <PageHead title="Orders" sub={`${orders.length} in total`} />
-      <Chips id="orders" items={FILTERS} value={filter} onChange={setFilter} />
+      <Chips items={FILTERS} value={filter} onChange={setFilter} />
 
       {list.length === 0 ? (
         <EmptyState icon={Inbox} title="No orders here" text={filter === 'all' ? 'Requests from your website will show up here.' : 'Nothing matches this filter.'} />

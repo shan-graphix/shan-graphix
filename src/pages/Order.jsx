@@ -1,10 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
-import { MessageCircle, Send } from 'lucide-react'
+import { Check, MessageCircle, Send } from 'lucide-react'
 import { db } from '../firebase.js'
-import { useSettings } from '../context/SettingsContext.jsx'
+import { useSettings } from '../context/PublicData.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { Field, PageHead, Spinner } from '../components/ui.jsx'
 import { clamp, digits, waLink } from '../lib/format.js'
@@ -21,32 +20,21 @@ function recentOrders() {
   }
 }
 
-function Tick() {
-  return (
-    <svg viewBox="0 0 52 52" width="84" height="84" aria-hidden="true">
-      <motion.circle cx="26" cy="26" r="24" fill="none" stroke="#B90D0D" strokeWidth="3"
-        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 0.6, ease: 'easeOut' }} />
-      <motion.path d="M15 27 l8 8 l15 -17" fill="none" stroke="#B90D0D" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"
-        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ delay: 0.5, duration: 0.4, ease: 'easeOut' }} />
-    </svg>
-  )
-}
+const EMPTY = { name: '', phone: '', email: '', service: '', details: '', deadline: '', website: '' }
 
 export default function Order() {
   const s = useSettings()
   const toast = useToast()
   const [params] = useSearchParams()
   const options = useMemo(() => [...s.services.map((x) => x.title), 'Something else'], [s.services])
-  const [form, setForm] = useState({
-    name: '', phone: '', email: '', service: params.get('service') || '', details: '', deadline: '', website: '',
-  })
+  const [form, setForm] = useState({ ...EMPTY, service: params.get('service') || '' })
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(null)
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
 
   async function submit(e) {
     e.preventDefault()
-    if (form.website) return // hidden field: only bots fill it
+    if (form.website) return // hidden field: only bots fill it in
     const name = clamp(form.name, 80)
     const phone = clamp(form.phone, 24)
     const details = clamp(form.details, 2000)
@@ -80,62 +68,90 @@ export default function Order() {
   const wa = done && waLink(s.whatsapp, `Hi Shan Graphix, I just sent an order request for ${done.service}. My name is ${done.name}.`)
 
   return (
-    <div className="narrow">
-      <PageHead title="Place an order" sub="Fill this in and we will get back to you with a quote." />
-      <AnimatePresence mode="wait">
+    <div className="container inner">
+      <PageHead title="Place an order" sub="Send your request and we will get back to you with a quote." />
+      <div className="order-grid">
         {done ? (
-          <motion.div key="done" className="card done" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}>
-            <Tick />
+          <div className="card done">
+            <span className="done-tick">
+              <Check size={26} />
+            </span>
             <h2>Thanks, {done.name.split(' ')[0]}. Your request is in.</h2>
             <p>We will contact you on the number you gave us. For a faster reply, message us on WhatsApp.</p>
-            {wa && (
-              <a className="btn whatsapp" href={wa} target="_blank" rel="noopener noreferrer">
-                <MessageCircle size={20} /> Message on WhatsApp
-              </a>
-            )}
-            <button
-              className="btn ghost"
-              onClick={() => {
-                setDone(null)
-                setForm({ name: '', phone: '', email: '', service: '', details: '', deadline: '', website: '' })
-              }}
-            >
-              Send another request
-            </button>
-          </motion.div>
+            <div className="done-actions">
+              {wa && (
+                <a className="btn whatsapp" href={wa} target="_blank" rel="noopener noreferrer">
+                  <MessageCircle size={17} /> Message on WhatsApp
+                </a>
+              )}
+              <button
+                className="btn ghost"
+                onClick={() => {
+                  setDone(null)
+                  setForm(EMPTY)
+                }}
+              >
+                Send another request
+              </button>
+            </div>
+          </div>
         ) : (
-          <motion.form key="form" className="card form" onSubmit={submit} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} noValidate>
-            <Field label="Your name">
-              <input value={form.name} onChange={set('name')} maxLength={80} autoComplete="name" placeholder="e.g. Nimal Perera" />
-            </Field>
-            <Field label="Phone or WhatsApp number">
-              <input value={form.phone} onChange={set('phone')} maxLength={24} inputMode="tel" autoComplete="tel" placeholder="07X XXX XXXX" />
-            </Field>
+          <form className="card form" onSubmit={submit} noValidate>
+            <div className="two">
+              <Field label="Your name">
+                <input value={form.name} onChange={set('name')} maxLength={80} autoComplete="name" placeholder="Full name" />
+              </Field>
+              <Field label="Phone or WhatsApp">
+                <input value={form.phone} onChange={set('phone')} maxLength={24} inputMode="tel" autoComplete="tel" placeholder="07X XXX XXXX" />
+              </Field>
+            </div>
             <Field label="Email (optional)">
               <input value={form.email} onChange={set('email')} maxLength={120} inputMode="email" autoComplete="email" placeholder="you@example.com" />
             </Field>
-            <Field label="What do you need?">
-              <select value={form.service} onChange={set('service')}>
-                <option value="">Choose a service</option>
-                {options.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
-            </Field>
-            <Field label="Tell us about it" hint="Text, sizes, colours, event date. Send images on WhatsApp after you submit.">
+            <div className="two">
+              <Field label="Service">
+                <select value={form.service} onChange={set('service')}>
+                  <option value="">Choose a service</option>
+                  {options.map((o) => (
+                    <option key={o}>{o}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Needed by (optional)">
+                <input type="date" value={form.deadline} onChange={set('deadline')} min={new Date().toISOString().slice(0, 10)} />
+              </Field>
+            </div>
+            <Field label="Project details" hint="Text, sizes, colours, event date. You can send images on WhatsApp after submitting.">
               <textarea value={form.details} onChange={set('details')} maxLength={2000} rows={5} placeholder="Describe the design you want" />
-            </Field>
-            <Field label="Needed by (optional)">
-              <input type="date" value={form.deadline} onChange={set('deadline')} min={new Date().toISOString().slice(0, 10)} />
             </Field>
             {/* Honeypot: hidden from people, bots fill it in. */}
             <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={form.website} onChange={set('website')} name="website" />
-            <button className="btn primary block-btn" disabled={busy}>
-              {busy ? <Spinner /> : <Send size={18} />} {busy ? 'Sending' : 'Send request'}
+            <button className="btn primary lg block-btn" disabled={busy}>
+              {busy ? <Spinner /> : <Send size={16} />} {busy ? 'Sending' : 'Send request'}
             </button>
-          </motion.form>
+          </form>
         )}
-      </AnimatePresence>
+
+        <aside className="card side-info">
+          <h3>What happens next</h3>
+          <ol>
+            <li>
+              <b>1</b> We review your request.
+            </li>
+            <li>
+              <b>2</b> We contact you with a quote and timeline.
+            </li>
+            <li>
+              <b>3</b> We design, you review, and we deliver the final files.
+            </li>
+          </ol>
+          {s.whatsapp && (
+            <a className="btn ghost block-btn" href={waLink(s.whatsapp, 'Hi Shan Graphix')} target="_blank" rel="noopener noreferrer">
+              <MessageCircle size={16} /> Prefer WhatsApp?
+            </a>
+          )}
+        </aside>
+      </div>
     </div>
   )
 }

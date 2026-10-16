@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion } from '../lib/motion.jsx'
 import { ArrowRight, CheckCircle2, Hourglass, ImagePlus, Inbox, Wallet } from 'lucide-react'
 import { useCountUp } from '../hooks/useCountUp.js'
 import { StatusBadge, EmptyState } from '../components/ui.jsx'

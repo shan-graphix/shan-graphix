@@ -1,12 +1,21 @@
-import { useEffect } from 'react'
-import { AnimatePresence, motion, useDragControls } from 'framer-motion'
+import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
-import { useMedia } from '../hooks/useMedia.js'
 
-// Phones: bottom sheet (drag down to close). Computers: drawer sliding in from the right.
+// Phones: sheet that slides up. Computers: panel that slides in from the right.
 export default function Sheet({ open, onClose, title, children, footer }) {
-  const controls = useDragControls()
-  const desktop = useMedia('(min-width: 900px)')
+  const [mounted, setMounted] = useState(open)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      setMounted(true)
+      const id = requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
+      return () => cancelAnimationFrame(id)
+    }
+    setShown(false)
+    const t = setTimeout(() => setMounted(false), 220)
+    return () => clearTimeout(t)
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -20,42 +29,20 @@ export default function Sheet({ open, onClose, title, children, footer }) {
     }
   }, [open, onClose])
 
-  const from = desktop ? { x: '100%' } : { y: '100%' }
-  const rest = desktop ? { x: 0 } : { y: 0 }
-
+  if (!mounted) return null
   return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div className="backdrop" onClick={onClose} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} />
-          <motion.div
-            className={`sheet ${desktop ? 'drawer' : ''}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label={title}
-            initial={from}
-            animate={rest}
-            exit={from}
-            transition={{ type: 'spring', stiffness: 320, damping: 36 }}
-            drag={desktop ? false : 'y'}
-            dragConstraints={{ top: 0, bottom: 0 }}
-            dragElastic={{ top: 0, bottom: 0.6 }}
-            dragListener={false}
-            dragControls={controls}
-            onDragEnd={(_, info) => (info.offset.y > 120 || info.velocity.y > 600) && onClose()}
-          >
-            <div className="sheet-head" onPointerDown={(e) => !desktop && controls.start(e)}>
-              <span className="grabber" />
-              <h2>{title}</h2>
-              <button className="icon-btn" onClick={onClose} aria-label="Close">
-                <X size={20} />
-              </button>
-            </div>
-            <div className="sheet-body">{children}</div>
-            {footer && <div className="sheet-foot">{footer}</div>}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+    <>
+      <div className={`backdrop ${shown ? 'in' : ''}`} onClick={onClose} />
+      <div className={`sheet ${shown ? 'in' : ''}`} role="dialog" aria-modal="true" aria-label={title}>
+        <div className="sheet-head">
+          <h2>{title}</h2>
+          <button className="icon-btn" onClick={onClose} aria-label="Close">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="sheet-body">{children}</div>
+        {footer && <div className="sheet-foot">{footer}</div>}
+      </div>
+    </>
   )
 }

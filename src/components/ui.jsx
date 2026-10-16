@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
 import { Trash2 } from 'lucide-react'
 import { STATUSES } from '../config.js'
 
-export function Skeleton({ h = 120, r = 20, style }) {
+export function Skeleton({ h = 120, r = 14, style }) {
   return <div className="skeleton" style={{ height: h, borderRadius: r, ...style }} />
 }
 
@@ -11,14 +10,9 @@ export function EmptyState({ icon: Icon, title, text, action }) {
   return (
     <div className="empty card">
       {Icon && (
-        <motion.div
-          className="empty-icon"
-          initial={{ scale: 0.7, rotate: -8 }}
-          animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 14 }}
-        >
-          <Icon size={28} />
-        </motion.div>
+        <div className="empty-icon">
+          <Icon size={22} />
+        </div>
       )}
       <h3>{title}</h3>
       {text && <p>{text}</p>}
@@ -36,7 +30,7 @@ export function StatusBadge({ status }) {
   )
 }
 
-// Two-step delete: first tap asks, second tap confirms.
+// Two-step delete: the first tap asks, the second tap confirms.
 export function ConfirmButton({ onConfirm, label = 'Delete', confirmLabel = 'Tap again to delete', className = '' }) {
   const [armed, setArmed] = useState(false)
   const t = useRef()
@@ -51,7 +45,7 @@ export function ConfirmButton({ onConfirm, label = 'Delete', confirmLabel = 'Tap
         t.current = setTimeout(() => setArmed(false), 3000)
       }}
     >
-      <Trash2 size={18} /> {armed ? confirmLabel : label}
+      <Trash2 size={16} /> {armed ? confirmLabel : label}
     </button>
   )
 }
@@ -82,17 +76,27 @@ export function PageHead({ title, sub, right }) {
   )
 }
 
-export function Chips({ items, value, onChange, id }) {
+export function SectionHead({ title, sub, link }) {
+  return (
+    <div className="section-head">
+      <div>
+        <h2>{title}</h2>
+        {sub && <p>{sub}</p>}
+      </div>
+      {link}
+    </div>
+  )
+}
+
+export function Chips({ items, value, onChange }) {
   return (
     <div className="chips" role="tablist">
       {items.map((it) => {
         const v = typeof it === 'string' ? it : it.id
         const l = typeof it === 'string' ? it : it.label
-        const on = value === v
         return (
-          <button key={v} role="tab" aria-selected={on} className={`chip ${on ? 'on' : ''}`} onClick={() => onChange(v)}>
-            {on && <motion.span layoutId={`${id}-chip`} className="chip-bg" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}
-            <span className="chip-t">{l}</span>
+          <button key={v} role="tab" aria-selected={value === v} className={`chip ${value === v ? 'on' : ''}`} onClick={() => onChange(v)}>
+            {l}
           </button>
         )
       })}

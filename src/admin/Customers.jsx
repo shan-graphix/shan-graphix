@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion } from '../lib/motion.jsx'
 import { addDoc, collection, deleteDoc, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore'
 import { MessageCircle, Phone, Plus, Search, UserPlus, Users } from 'lucide-react'
 import { db } from '../firebase.js'
-import { useCollection } from '../hooks/useFirestore.js'
+import { useAdminData } from '../context/AdminData.jsx'
 import Sheet from '../components/Sheet.jsx'
 import { ConfirmButton, EmptyState, Field, PageHead, StatusBadge } from '../components/ui.jsx'
 import { useToast } from '../components/Toast.jsx'
@@ -13,7 +13,7 @@ const EMPTY = { name: '', phone: '', email: '', notes: '' }
 
 export default function Customers({ orders }) {
   const toast = useToast()
-  const { items: customers, loading } = useCollection('customers', 'name')
+  const { customers, customersLoading: loading } = useAdminData()
   const [q, setQ] = useState('')
   const [sheet, setSheet] = useState({ open: false, customer: null })
   const [f, setF] = useState(EMPTY)

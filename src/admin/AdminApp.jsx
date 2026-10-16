@@ -1,9 +1,9 @@
-import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ExternalLink, Images, Inbox, LayoutDashboard, LogOut, Settings as SettingsIcon, Users } from 'lucide-react'
+import { Link, NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { AlertTriangle, ExternalLink, Images, Inbox, LayoutDashboard, LogOut, Settings as SettingsIcon, Users } from 'lucide-react'
 import { AuthProvider, useAuth } from '../context/AuthContext.jsx'
-import { useCollection } from '../hooks/useFirestore.js'
-import BottomNav from '../components/BottomNav.jsx'
+import { AdminDataProvider, useAdminData } from '../context/AdminData.jsx'
+import TabBar from '../components/TabBar.jsx'
+import RouteBoundary from '../components/RouteBoundary.jsx'
 import Login from './Login.jsx'
 import Dashboard from './Dashboard.jsx'
 import Works from './Works.jsx'
@@ -13,8 +13,8 @@ import Settings from './Settings.jsx'
 
 function Shell() {
   const { logout } = useAuth()
+  const { orders, error } = useAdminData()
   const loc = useLocation()
-  const { items: orders } = useCollection('orders', 'createdAt', 'desc')
   const fresh = orders.filter((o) => o.status === 'new').length
 
   const nav = [
@@ -26,61 +26,75 @@ function Shell() {
   ]
 
   return (
-    <>
-      <header className="admin-top">
-        <Link to="/admin" className="admin-brand">
-          <img src="logo.png" alt="" />
+    <div className="admin-shell">
+      <aside className="sidebar">
+        <Link to="/admin" className="brand">
+          <img src="logo.png" alt="" width="32" height="32" />
           <span>
-            <strong>Shan Graphix</strong>
+            Shan Graphix
             <small>Admin</small>
           </span>
         </Link>
-        <div className="admin-top-actions">
+        <nav className="side-links" aria-label="Admin">
+          {nav.map(({ to, label, Icon, end, badge }) => (
+            <NavLink key={to} to={to} end={end}>
+              <Icon size={18} /> {label}
+              {badge > 0 && <span className="side-badge">{badge}</span>}
+            </NavLink>
+          ))}
+        </nav>
+        <div className="side-foot">
+          <Link to="/">
+            <ExternalLink size={18} /> View website
+          </Link>
+          <button onClick={logout}>
+            <LogOut size={18} /> Sign out
+          </button>
+        </div>
+      </aside>
+
+      <header className="admin-header">
+        <Link to="/admin" className="brand">
+          <img src="logo.png" alt="" width="30" height="30" />
+          <span>
+            Shan Graphix
+            <small>Admin</small>
+          </span>
+        </Link>
+        <div className="admin-actions">
           <Link to="/" className="icon-btn" aria-label="View website">
-            <ExternalLink size={20} />
+            <ExternalLink size={18} />
           </Link>
           <button className="icon-btn" onClick={logout} aria-label="Sign out">
-            <LogOut size={20} />
+            <LogOut size={18} />
           </button>
         </div>
       </header>
-      <div className="app admin-app">
-        <motion.main key={loc.pathname} className="page" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+
+      <main className="admin-main" key={loc.pathname}>
+        {error && (
+          <div className="alert">
+            <AlertTriangle size={18} />
+            <span>
+              {error.code === 'permission-denied'
+                ? 'Firebase refused to load your data. Publish the latest firestore.rules in Firebase and check that Firestore is created.'
+                : 'Could not load your data. Check your internet connection.'}
+            </span>
+          </div>
+        )}
+        <RouteBoundary>
           <Routes location={loc}>
-            <Route index element={<Dashboard orders={orders} />} />
-            <Route path="works" element={<Works />} />
-            <Route path="customers" element={<Customers orders={orders} />} />
-            <Route path="orders" element={<Orders orders={orders} />} />
-            <Route path="settings" element={<Settings />} />
+            <Route path="/admin" element={<Dashboard orders={orders} />} />
+            <Route path="/admin/works" element={<Works />} />
+            <Route path="/admin/customers" element={<Customers orders={orders} />} />
+            <Route path="/admin/orders" element={<Orders orders={orders} />} />
+            <Route path="/admin/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
-        </motion.main>
-      </div>
-      <BottomNav
-        items={nav}
-        id="admin"
-        variant="side"
-        brand={
-          <Link to="/admin" className="brand-link">
-            <img src="logo.png" alt="" />
-            <span>
-              Shan Graphix
-              <small>Admin</small>
-            </span>
-          </Link>
-        }
-        footer={
-          <>
-            <Link to="/" className="nav-action">
-              <ExternalLink size={20} /> View website
-            </Link>
-            <button className="nav-action" onClick={logout}>
-              <LogOut size={20} /> Sign out
-            </button>
-          </>
-        }
-      />
-    </>
+        </RouteBoundary>
+      </main>
+      <TabBar items={nav} />
+    </div>
   )
 }
 
@@ -92,7 +106,13 @@ function Gate() {
         <img src="logo.png" alt="" />
       </div>
     )
-  return user ? <Shell /> : <Login />
+  return user ? (
+    <AdminDataProvider>
+      <Shell />
+    </AdminDataProvider>
+  ) : (
+    <Login />
+  )
 }
 
 export default function AdminApp() {

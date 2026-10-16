@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion'
 import { collection, doc, serverTimestamp, updateDoc, writeBatch } from 'firebase/firestore'
-import { AlertCircle, CheckCircle2, GripVertical, ImagePlus, Images, Star, UploadCloud } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, GripVertical, ImagePlus, Images, Star, UploadCloud } from 'lucide-react'
 import { db } from '../firebase.js'
 import { CATEGORIES } from '../config.js'
-import { useCollection } from '../hooks/useFirestore.js'
+import { useAdminData } from '../context/AdminData.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { ConfirmButton, EmptyState, PageHead, Skeleton } from '../components/ui.jsx'
 import { processImage } from '../lib/image.js'
@@ -16,11 +15,12 @@ function saveError(e) {
   return e?.message || 'Upload failed.'
 }
 
-function Row({ w, onSaveOrder }) {
-  const controls = useDragControls()
+function Row({ w, index, count, onMove, dragProps }) {
   const toast = useToast()
   const [title, setTitle] = useState(w.title)
-  useEffect(() => setTitle(w.title), [w.title])
+  useEffect(() => {
+    setTitle(w.title)
+  }, [w.title])
 
   const update = (patch) => updateDoc(doc(db, 'works', w.id), patch).catch(() => toast('Could not save that change.', 'err'))
 
@@ -37,10 +37,18 @@ function Row({ w, onSaveOrder }) {
   }
 
   return (
-    <Reorder.Item value={w} as="div" className="work-row card" dragListener={false} dragControls={controls} onDragEnd={onSaveOrder} whileDrag={{ scale: 1.02, boxShadow: '0 18px 40px rgba(23,23,28,.2)' }}>
-      <button className="handle" onPointerDown={(e) => controls.start(e)} aria-label="Drag to reorder">
-        <GripVertical size={20} />
-      </button>
+    <div className="work-row card" {...dragProps}>
+      <div className="work-side">
+        <span className="handle" title="Drag to reorder">
+          <GripVertical size={18} />
+        </span>
+        <button className="mini" onClick={() => onMove(index, -1)} disabled={index === 0} aria-label="Move up">
+          <ArrowUp size={15} />
+        </button>
+        <button className="mini" onClick={() => onMove(index, 1)} disabled={index === count - 1} aria-label="Move down">
+          <ArrowDown size={15} />
+        </button>
+      </div>
       <img src={w.thumb} alt="" draggable="false" />
       <div className="work-fields">
         <input
@@ -56,21 +64,22 @@ function Row({ w, onSaveOrder }) {
           ))}
         </select>
         <div className="work-actions">
-          <button className={`btn small ${w.featured ? 'primary' : 'ghost'}`} onClick={() => update({ featured: !w.featured })}>
-            <Star size={16} fill={w.featured ? 'currentColor' : 'none'} /> {w.featured ? 'Featured' : 'Feature'}
+          <button className={`btn sm ${w.featured ? 'primary' : 'ghost'}`} onClick={() => update({ featured: !w.featured })}>
+            <Star size={14} fill={w.featured ? 'currentColor' : 'none'} /> {w.featured ? 'Featured' : 'Feature'}
           </button>
-          <ConfirmButton onConfirm={remove} label="Delete" confirmLabel="Sure?" className="small" />
+          <ConfirmButton onConfirm={remove} label="Delete" confirmLabel="Sure?" className="sm" />
         </div>
       </div>
-    </Reorder.Item>
+    </div>
   )
 }
 
 export default function Works() {
   const toast = useToast()
-  const { items, loading } = useCollection('works', 'order')
+  const { works: items, worksLoading: loading } = useAdminData()
   const [list, setList] = useState([])
   const listRef = useRef([])
+  const dragFrom = useRef(null)
   const [cat, setCat] = useState('Logo')
   const [uploads, setUploads] = useState([])
   const [over, setOver] = useState(false)
@@ -90,14 +99,14 @@ export default function Works() {
     if (!imgs.length) return toast('Choose image files (JPG, PNG or WebP).', 'err')
     for (const file of imgs) {
       const uid = crypto.randomUUID()
-      setUploads((u) => [...u, { id: uid, name: file.name, progress: 0 }])
+      setUploads((u) => [...u, { id: uid, name: file.name, progress: 0.1 }])
       try {
         const { full, thumb } = await processImage(file)
         patchUpload(uid, { progress: 0.55 })
         const id = doc(collection(db, 'works')).id
         minOrder.current -= 1
         const batch = writeBatch(db)
-        // The small preview goes in the portfolio list; the full picture is opened only when tapped.
+        // The small preview goes in the portfolio list; the full picture is opened only when selected.
         batch.set(doc(db, 'workImages', id), { data: full.dataUrl, createdAt: serverTimestamp() })
         batch.set(doc(db, 'works', id), {
           title: cleanTitle(file.name) || 'Untitled',
@@ -118,10 +127,10 @@ export default function Works() {
     }
   }
 
-  async function saveOrder() {
+  async function saveOrder(next = listRef.current) {
     const batch = writeBatch(db)
     let changed = 0
-    listRef.current.forEach((w, i) => {
+    next.forEach((w, i) => {
       if (w.order !== i) {
         batch.update(doc(db, 'works', w.id), { order: i })
         changed++
@@ -136,6 +145,37 @@ export default function Works() {
     }
   }
 
+  function move(i, d) {
+    const next = [...listRef.current]
+    const j = i + d
+    if (j < 0 || j >= next.length) return
+    ;[next[i], next[j]] = [next[j], next[i]]
+    listRef.current = next
+    setList(next)
+    saveOrder(next)
+  }
+
+  // Mouse drag and drop for reordering (phones use the arrow buttons)
+  const dragProps = (i) => ({
+    draggable: true,
+    onDragStart: () => (dragFrom.current = i),
+    onDragOver: (e) => {
+      e.preventDefault()
+      const from = dragFrom.current
+      if (from === null || from === i) return
+      const next = [...listRef.current]
+      const [moved] = next.splice(from, 1)
+      next.splice(i, 0, moved)
+      dragFrom.current = i
+      listRef.current = next
+      setList(next)
+    },
+    onDragEnd: () => {
+      dragFrom.current = null
+      saveOrder()
+    },
+  })
+
   return (
     <>
       <PageHead title="Works" sub="Add designs to your portfolio. They go live straight away." />
@@ -143,11 +183,13 @@ export default function Works() {
       <div
         className={`dropzone card ${over ? 'over' : ''}`}
         onDragOver={(e) => {
+          if (dragFrom.current !== null) return
           e.preventDefault()
           setOver(true)
         }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => {
+          if (dragFrom.current !== null) return
           e.preventDefault()
           setOver(false)
           uploadFiles(e.dataTransfer.files)
@@ -157,12 +199,22 @@ export default function Works() {
         tabIndex={0}
         onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && input.current?.click()}
       >
-        <motion.div className="dz-icon" animate={over ? { scale: 1.2, rotate: -6 } : { scale: 1, rotate: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 14 }}>
-          <UploadCloud size={30} />
-        </motion.div>
-        <strong>{over ? 'Drop to upload' : 'Drag images here, or tap to choose'}</strong>
-        <small>JPG, PNG or WebP. Pick as many as you like.</small>
-        <input ref={input} type="file" accept="image/*" multiple hidden onChange={(e) => { uploadFiles(e.target.files); e.target.value = '' }} />
+        <div className="dz-icon">
+          <UploadCloud size={24} />
+        </div>
+        <strong>{over ? 'Drop to upload' : 'Drag images here, or select files'}</strong>
+        <small>JPG, PNG or WebP. Choose as many as you like.</small>
+        <input
+          ref={input}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={(e) => {
+            uploadFiles(e.target.files)
+            e.target.value = ''
+          }}
+        />
       </div>
 
       <div className="cat-pick">
@@ -174,34 +226,42 @@ export default function Works() {
         </select>
       </div>
 
-      <AnimatePresence>
-        {uploads.map((u) => (
-          <motion.div key={u.id} className={`upload card ${u.error ? 'bad' : ''}`} layout initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-            {u.error ? <AlertCircle size={20} /> : u.done ? <CheckCircle2 size={20} /> : <ImagePlus size={20} />}
-            <div>
-              <strong>{u.name}</strong>
-              {u.error ? <small>{u.error}</small> : <div className="bar"><motion.i animate={{ width: `${Math.round(u.progress * 100)}%` }} /></div>}
-            </div>
-            {u.error && <button className="link" onClick={() => setUploads((x) => x.filter((y) => y.id !== u.id))}>Dismiss</button>}
-          </motion.div>
-        ))}
-      </AnimatePresence>
+      {uploads.map((u) => (
+        <div key={u.id} className={`upload card ${u.error ? 'bad' : ''}`}>
+          {u.error ? <AlertCircle size={18} /> : u.done ? <CheckCircle2 size={18} /> : <ImagePlus size={18} />}
+          <div>
+            <strong>{u.name}</strong>
+            {u.error ? (
+              <small>{u.error}</small>
+            ) : (
+              <div className="upload-bar">
+                <i style={{ width: `${Math.round(u.progress * 100)}%` }} />
+              </div>
+            )}
+          </div>
+          {u.error && (
+            <button className="link" onClick={() => setUploads((x) => x.filter((y) => y.id !== u.id))}>
+              Dismiss
+            </button>
+          )}
+        </div>
+      ))}
 
       <section className="block">
-        <div className="block-head">
+        <div className="section-head">
           <h2>Your portfolio ({list.length})</h2>
-          {list.length > 1 && <small className="muted">Hold the handle to reorder</small>}
+          {list.length > 1 && <small className="muted">Drag rows or use the arrows to reorder</small>}
         </div>
         {loading ? (
           <Skeleton h={110} />
         ) : list.length === 0 ? (
           <EmptyState icon={Images} title="No works yet" text="Add your first design above." />
         ) : (
-          <Reorder.Group axis="y" values={list} onReorder={(v) => { setList(v); listRef.current = v }} as="div" className="stack">
-            {list.map((w) => (
-              <Row key={w.id} w={w} onSaveOrder={saveOrder} />
+          <div className="stack">
+            {list.map((w, i) => (
+              <Row key={w.id} w={w} index={i} count={list.length} onMove={move} dragProps={dragProps(i)} />
             ))}
-          </Reorder.Group>
+          </div>
         )}
       </section>
     </>

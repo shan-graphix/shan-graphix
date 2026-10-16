@@ -1,7 +1,7 @@
 // Firebase setup. The web config is safe to ship in the site code:
 // your Firestore security rules are what protect the data.
 import { initializeApp } from 'firebase/app'
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore'
+import { getFirestore } from 'firebase/firestore'
 
 export const firebaseConfig = {
   apiKey: 'AIzaSyDtKQMu30Xur8DBnfN7sCZ_bCpZQ2LzdME',
@@ -14,12 +14,4 @@ export const firebaseConfig = {
 }
 
 export const app = initializeApp(firebaseConfig)
-
-// A local cache means returning visitors re-download less, which keeps you inside the free limits.
-let database
-try {
-  database = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) })
-} catch {
-  database = getFirestore(app)
-}
-export const db = database
+export const db = getFirestore(app)

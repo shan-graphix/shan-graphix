@@ -1,125 +1,178 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ArrowRight, ImageOff } from 'lucide-react'
-import { useSettings } from '../context/SettingsContext.jsx'
-import { useCollection } from '../hooks/useFirestore.js'
+import { ArrowRight, ImageOff, MessageCircle } from 'lucide-react'
+import { useSettings, useWorks } from '../context/PublicData.jsx'
 import { getIcon } from '../lib/icons.js'
-import { Skeleton, EmptyState } from '../components/ui.jsx'
+import { waLink } from '../lib/format.js'
+import { useReveal } from '../hooks/useReveal.js'
+import { EmptyState, SectionHead, Skeleton } from '../components/ui.jsx'
 
-const word = {
-  hidden: { opacity: 0, y: 18, rotateX: -40 },
-  show: { opacity: 1, y: 0, rotateX: 0, transition: { type: 'spring', stiffness: 160, damping: 16 } },
-}
+const STEPS = [
+  { n: '01', t: 'Tell us what you need', d: 'Pick a service and send a short brief with your details and deadline.' },
+  { n: '02', t: 'We design it', d: 'We prepare your design and share it with you for feedback.' },
+  { n: '03', t: 'Approve and receive', d: 'Once you are happy, you get final files ready to print or post.' },
+]
 
 export default function Home() {
   const s = useSettings()
+  const { works, loading } = useWorks()
   const nav = useNavigate()
-  const { items: works, loading } = useCollection('works', 'order')
   const featured = works.filter((w) => w.featured)
-  const shown = (featured.length ? featured : works).slice(0, 8)
+  const pick = featured.length ? featured : works
+  const bento = pick.slice(0, 5)
+  const collage = pick.slice(0, 3)
+  const wa = waLink(s.whatsapp, 'Hi Shan Graphix, I would like to order a design.')
+  const [a, b] = s.services
+  const A = getIcon(a?.icon)
+  const B = getIcon(b?.icon)
+  useReveal(loading, works.length)
+
+  const open = (id) => nav('/portfolio', { state: { open: id } })
 
   return (
     <>
-      <section className="hero">
-        <motion.img
-          src="mark-white.png"
-          alt=""
-          className="hero-mark"
-          initial={{ scale: 0.5, rotate: -35, opacity: 0, x: 40 }}
-          animate={{ scale: 1, rotate: 0, opacity: 0.2, x: 0 }}
-          transition={{ type: 'spring', stiffness: 50, damping: 11, delay: 0.1 }}
-        />
+      {/* Hero */}
+      <section className="hero container">
         <div className="hero-copy">
-          <motion.div className="hero-brand" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
-            <img src="logo.png" alt="" /> Shan Graphix
-          </motion.div>
-          <motion.h1 initial="hidden" animate="show" transition={{ staggerChildren: 0.07, delayChildren: 0.25 }}>
-            {s.tagline.split(' ').map((w, i) => (
-              <motion.span key={i} variants={word} style={{ display: 'inline-block', marginRight: '0.28em' }}>
-                {w}
-              </motion.span>
-            ))}
-          </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
-            {s.intro}
-          </motion.p>
-          <motion.div className="hero-actions" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.95 }}>
-            <Link to="/order" className="btn light">
+          <span className="pill">
+            <i /> Graphic design studio{s.location ? ` · ${s.location}` : ''}
+          </span>
+          <h1>{s.tagline}</h1>
+          <p className="lead">{s.intro}</p>
+          <div className="hero-actions">
+            <Link to="/order" className="btn primary lg">
               Order a design
             </Link>
-            <Link to="/portfolio" className="btn ghost-light">
-              See our work
+            <Link to="/portfolio" className="btn ghost lg">
+              View our work <ArrowRight size={16} />
             </Link>
-          </motion.div>
+          </div>
+          <ul className="hero-list">
+            {s.services.slice(0, 4).map((sv) => (
+              <li key={sv.id}>{sv.title}</li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="hero-art" aria-hidden="true">
+          <div className="art-grid" />
+          {collage.length > 0 ? (
+            collage.map((w, i) => (
+              <figure key={w.id} className={`art-card c${i}`}>
+                <img src={w.thumb} alt="" />
+              </figure>
+            ))
+          ) : (
+            <img className="art-mark" src="mark-white.png" alt="" />
+          )}
+          {a && (
+            <div className="art-chip chip-a">
+              <A size={16} /> {a.title}
+            </div>
+          )}
+          {b && (
+            <div className="art-chip chip-b">
+              <B size={16} /> {b.title}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="block">
-        <div className="block-head">
-          <h2>{featured.length ? 'Featured work' : 'Latest work'}</h2>
-          <Link to="/portfolio" className="link">
-            View all <ArrowRight size={16} />
-          </Link>
-        </div>
+      {/* Selected work */}
+      <section className="section container reveal">
+        <SectionHead
+          title={featured.length ? 'Featured work' : 'Selected work'}
+          sub="A look at recent designs."
+          link={
+            <Link to="/portfolio" className="link">
+              View all <ArrowRight size={15} />
+            </Link>
+          }
+        />
         {loading ? (
-          <div className="scroller">
-            {[0, 1, 2].map((i) => (
-              <Skeleton key={i} h={220} style={{ minWidth: 190 }} />
+          <div className="bento">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} h="100%" r={14} style={{ minHeight: 120 }} />
             ))}
           </div>
-        ) : shown.length === 0 ? (
+        ) : bento.length === 0 ? (
           <EmptyState icon={ImageOff} title="New work is on its way" text="Our portfolio is being updated. Check back soon." />
         ) : (
-          <div className="scroller">
-            {shown.map((w, i) => (
-              <motion.button
-                key={w.id}
-                className="work-tile card press"
-                onClick={() => nav('/portfolio', { state: { open: w.id } })}
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5 + i * 0.06, type: 'spring', stiffness: 200, damping: 22 }}
-                whileTap={{ scale: 0.97 }}
-              >
+          <div className="bento">
+            {bento.map((w, i) => (
+              <button key={w.id} className={`work-tile b${i}`} onClick={() => open(w.id)}>
                 <img src={w.thumb} alt={w.title} loading="lazy" />
-                <span>{w.title}</span>
-              </motion.button>
+                <span className="tw-cap">
+                  <strong>{w.title}</strong>
+                  <small>{w.category}</small>
+                </span>
+              </button>
             ))}
           </div>
         )}
       </section>
 
-      <section className="block">
-        <div className="block-head">
-          <h2>What we design</h2>
-          <Link to="/services" className="link">
-            All services <ArrowRight size={16} />
-          </Link>
-        </div>
-        <div className="tiles">
-          {s.services.slice(0, 4).map((sv) => {
+      {/* Services */}
+      <section className="section container reveal">
+        <SectionHead
+          title="What we design"
+          sub="Everything your brand needs to look sharp."
+          link={
+            <Link to="/services" className="link">
+              All services <ArrowRight size={15} />
+            </Link>
+          }
+        />
+        <div className="svc-grid">
+          {s.services.map((sv) => {
             const Icon = getIcon(sv.icon)
             return (
-              <Link key={sv.id} to="/services" className="tile card press">
-                <span className="tile-icon">
-                  <Icon size={22} />
+              <Link key={sv.id} to={`/order?service=${encodeURIComponent(sv.title)}`} className="svc-card card">
+                <span className="icon-box">
+                  <Icon size={20} />
                 </span>
-                <strong>{sv.title}</strong>
+                <h3>{sv.title}</h3>
+                <p>{sv.desc}</p>
+                <span className="svc-link">
+                  Order <ArrowRight size={14} />
+                </span>
               </Link>
             )
           })}
         </div>
       </section>
 
-      <section className="block">
-        <div className="cta card">
-          <div>
-            <h3>Have a design in mind?</h3>
-            <p>Tell us what you need. We reply with a quote.</p>
+      {/* Process */}
+      <section className="section container reveal">
+        <SectionHead title="How it works" sub="Simple from first message to final files." />
+        <ol className="steps">
+          {STEPS.map((st) => (
+            <li key={st.n} className="step card">
+              <span className="step-n">{st.n}</span>
+              <h3>{st.t}</h3>
+              <p>{st.d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* Call to action */}
+      <section className="section container reveal">
+        <div className="cta-band">
+          <img className="cta-mark" src="mark-white.png" alt="" />
+          <div className="cta-copy">
+            <h2>Let us make something people remember.</h2>
+            <p>Tell us what you need and we will come back with a quote.</p>
           </div>
-          <Link to="/order" className="btn primary">
-            Start an order
-          </Link>
+          <div className="cta-actions">
+            <Link to="/order" className="btn white lg">
+              Start your order
+            </Link>
+            {wa && (
+              <a href={wa} target="_blank" rel="noopener noreferrer" className="btn outline-white lg">
+                <MessageCircle size={17} /> WhatsApp
+              </a>
+            )}
+          </div>
         </div>
       </section>
     </>
