@@ -6,6 +6,7 @@ import { db } from '../firebase.js'
 import { useSettings } from '../context/PublicData.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { Field, PageHead, Spinner } from '../components/ui.jsx'
+import Select from '../components/Select.jsx'
 import { clamp, digits, waLink } from '../lib/format.js'
 
 const COOLDOWN_MS = 60 * 1000
@@ -109,13 +110,8 @@ export default function Order() {
               <input value={form.email} onChange={set('email')} maxLength={120} inputMode="email" autoComplete="email" placeholder="you@example.com" />
             </Field>
             <div className="two">
-              <Field label="Service">
-                <select value={form.service} onChange={set('service')}>
-                  <option value="">Choose a service</option>
-                  {options.map((o) => (
-                    <option key={o}>{o}</option>
-                  ))}
-                </select>
+              <Field label="Service" plain>
+                <Select value={form.service} onChange={(v) => setForm((f) => ({ ...f, service: v }))} options={options} placeholder="Choose a service" />
               </Field>
               <Field label="Needed by (optional)">
                 <input type="date" value={form.deadline} onChange={set('deadline')} min={new Date().toISOString().slice(0, 10)} />

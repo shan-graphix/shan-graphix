@@ -6,6 +6,7 @@ import { CATEGORIES } from '../config.js'
 import { useAdminData } from '../context/AdminData.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { ConfirmButton, EmptyState, PageHead, Skeleton } from '../components/ui.jsx'
+import Select from '../components/Select.jsx'
 import { processImage } from '../lib/image.js'
 import { cleanTitle } from '../lib/format.js'
 
@@ -58,11 +59,7 @@ function Row({ w, index, count, onMove, dragProps }) {
           onBlur={() => title.trim() && title !== w.title && update({ title: title.trim() })}
           aria-label="Title"
         />
-        <select value={w.category} onChange={(e) => update({ category: e.target.value })} aria-label="Category">
-          {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+        <Select size="sm" value={w.category} onChange={(v) => update({ category: v })} options={CATEGORIES} ariaLabel="Category" />
         <div className="work-actions">
           <button className={`btn sm ${w.featured ? 'primary' : 'ghost'}`} onClick={() => update({ featured: !w.featured })}>
             <Star size={14} fill={w.featured ? 'currentColor' : 'none'} /> {w.featured ? 'Featured' : 'Feature'}
@@ -219,11 +216,7 @@ export default function Works() {
 
       <div className="cat-pick">
         <span>Add to category</span>
-        <select value={cat} onChange={(e) => setCat(e.target.value)}>
-          {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+        <Select size="sm" value={cat} onChange={setCat} options={CATEGORIES} ariaLabel="Category for new uploads" />
       </div>
 
       {uploads.map((u) => (

@@ -1,6 +1,6 @@
 import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
+import { MemoryRouter } from 'react-router-dom'
 import App from './App.jsx'
 import { ToastProvider } from './components/Toast.jsx'
 import './styles.css'
@@ -26,15 +26,35 @@ class Boundary extends Component {
   }
 }
 
-// HashRouter keeps every page working on GitHub Pages (addresses look like site/#/portfolio)
+// The address bar always stays at the site address (no page names in the URL).
+// The current page is remembered for this tab, so a refresh stays on the same page.
+// Typing  site-address/#/admin  still opens the admin sign-in once, then the address is cleaned.
+function startPage() {
+  const h = window.location.hash
+  const wantsAdmin = h === '#/admin' || h === '#admin'
+  if (h) window.history.replaceState(null, '', window.location.pathname + window.location.search)
+  if (wantsAdmin) return '/admin'
+  try {
+    return sessionStorage.getItem('sg_path') || '/'
+  } catch {
+    return '/'
+  }
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
+    <div className="bg-fx" aria-hidden="true">
+      <i className="blob b1" />
+      <i className="blob b2" />
+      <i className="blob b3" />
+      <div className="bg-grid" />
+    </div>
     <Boundary>
-      <HashRouter>
+      <MemoryRouter initialEntries={[startPage()]}>
         <ToastProvider>
           <App />
         </ToastProvider>
-      </HashRouter>
+      </MemoryRouter>
     </Boundary>
   </StrictMode>
 )

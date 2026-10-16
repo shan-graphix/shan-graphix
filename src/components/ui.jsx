@@ -50,13 +50,14 @@ export function ConfirmButton({ onConfirm, label = 'Delete', confirmLabel = 'Tap
   )
 }
 
-export function Field({ label, children, hint }) {
+export function Field({ label, children, hint, plain }) {
+  const Tag = plain ? 'div' : 'label'
   return (
-    <label className="field">
+    <Tag className="field">
       <span>{label}</span>
       {children}
       {hint && <small>{hint}</small>}
-    </label>
+    </Tag>
   )
 }
 

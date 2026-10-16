@@ -1,10 +1,11 @@
+import { useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, ImageOff, MessageCircle } from 'lucide-react'
 import { useSettings, useWorks } from '../context/PublicData.jsx'
 import { getIcon } from '../lib/icons.js'
 import { waLink } from '../lib/format.js'
 import { useReveal } from '../hooks/useReveal.js'
-import { EmptyState, SectionHead, Skeleton } from '../components/ui.jsx'
+import { EmptyState, SectionHead } from '../components/ui.jsx'
 
 const STEPS = [
   { n: '01', t: 'Tell us what you need', d: 'Pick a service and send a short brief with your details and deadline.' },
@@ -18,95 +19,100 @@ export default function Home() {
   const nav = useNavigate()
   const featured = works.filter((w) => w.featured)
   const pick = featured.length ? featured : works
-  const bento = pick.slice(0, 5)
-  const collage = pick.slice(0, 3)
   const wa = waLink(s.whatsapp, 'Hi Shan Graphix, I would like to order a design.')
-  const [a, b] = s.services
-  const A = getIcon(a?.icon)
-  const B = getIcon(b?.icon)
+  const words = s.tagline.split(' ')
+  const chips = s.services.slice(0, 4)
   useReveal(loading, works.length)
 
+  // Repeat the works so the moving strip always fills the screen, then double it for a seamless loop
+  const strip = useMemo(() => {
+    if (!pick.length) return []
+    const reps = Math.max(1, Math.ceil(7 / pick.length))
+    const half = Array.from({ length: reps }).flatMap(() => pick)
+    return [...half, ...half]
+  }, [pick])
+
+  const line = [...s.services, ...s.services, ...s.services, ...s.services]
   const open = (id) => nav('/portfolio', { state: { open: id } })
 
   return (
     <>
       {/* Hero */}
       <section className="hero container">
-        <div className="hero-copy">
-          <span className="pill">
-            <i /> Graphic design studio{s.location ? ` · ${s.location}` : ''}
-          </span>
-          <h1>{s.tagline}</h1>
-          <p className="lead">{s.intro}</p>
-          <div className="hero-actions">
-            <Link to="/order" className="btn primary lg">
-              Order a design
-            </Link>
-            <Link to="/portfolio" className="btn ghost lg">
-              View our work <ArrowRight size={16} />
-            </Link>
-          </div>
-          <ul className="hero-list">
-            {s.services.slice(0, 4).map((sv) => (
-              <li key={sv.id}>{sv.title}</li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="hero-art" aria-hidden="true">
-          <div className="art-grid" />
-          {collage.length > 0 ? (
-            collage.map((w, i) => (
-              <figure key={w.id} className={`art-card c${i}`}>
-                <img src={w.thumb} alt="" />
-              </figure>
-            ))
-          ) : (
-            <img className="art-mark" src="mark-white.png" alt="" />
-          )}
-          {a && (
-            <div className="art-chip chip-a">
-              <A size={16} /> {a.title}
+        {chips.map((sv, i) => {
+          const Icon = getIcon(sv.icon)
+          return (
+            <div key={sv.id} className={`float-chip fc${i}`} aria-hidden="true">
+              <Icon size={15} /> {sv.title}
             </div>
-          )}
-          {b && (
-            <div className="art-chip chip-b">
-              <B size={16} /> {b.title}
-            </div>
-          )}
+          )
+        })}
+        <span className="pill">
+          <i /> Graphic design studio{s.location ? ` · ${s.location}` : ''}
+        </span>
+        <h1 aria-label={s.tagline}>
+          {words.map((w, i) => (
+            <span className="w" key={i} aria-hidden="true" style={{ '--i': i }}>
+              <span>{w}</span>
+            </span>
+          ))}
+        </h1>
+        <p className="lead">{s.intro}</p>
+        <div className="hero-actions">
+          <Link to="/order" className="btn primary lg">
+            Order a design <ArrowRight size={16} />
+          </Link>
+          <Link to="/portfolio" className="btn ghost lg">
+            View our work
+          </Link>
         </div>
       </section>
 
-      {/* Selected work */}
-      <section className="section container reveal">
-        <SectionHead
-          title={featured.length ? 'Featured work' : 'Selected work'}
-          sub="A look at recent designs."
-          link={
-            <Link to="/portfolio" className="link">
-              View all <ArrowRight size={15} />
-            </Link>
-          }
-        />
+      {/* Moving strip of services */}
+      <div className="marquee" aria-hidden="true">
+        <div className="marquee-track">
+          {[...line, ...line].map((sv, i) => (
+            <span key={i} className="marquee-item">
+              {sv.title}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* Work */}
+      <section className="section reveal">
+        <div className="container">
+          <SectionHead
+            title={featured.length ? 'Featured work' : 'Selected work'}
+            sub="Recent designs. Hover to pause, select to open."
+            link={
+              <Link to="/portfolio" className="link">
+                View all <ArrowRight size={15} />
+              </Link>
+            }
+          />
+        </div>
         {loading ? (
-          <div className="bento">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} h="100%" r={14} style={{ minHeight: 120 }} />
-            ))}
+          <div className="container">
+            <div className="wm-skel" />
           </div>
-        ) : bento.length === 0 ? (
-          <EmptyState icon={ImageOff} title="New work is on its way" text="Our portfolio is being updated. Check back soon." />
+        ) : pick.length === 0 ? (
+          <div className="container">
+            <EmptyState icon={ImageOff} title="New work is on its way" text="Our portfolio is being updated. Check back soon." />
+          </div>
         ) : (
-          <div className="bento">
-            {bento.map((w, i) => (
-              <button key={w.id} className={`work-tile b${i}`} onClick={() => open(w.id)}>
-                <img src={w.thumb} alt={w.title} loading="lazy" />
-                <span className="tw-cap">
-                  <strong>{w.title}</strong>
-                  <small>{w.category}</small>
-                </span>
-              </button>
-            ))}
+          <div className="work-marquee">
+            <div className="wm-track" style={{ animationDuration: `${Math.max(30, strip.length * 5)}s` }}>
+              {strip.map((w, i) => (
+                <button key={`${w.id}-${i}`} className="wm-card" onClick={() => open(w.id)} tabIndex={i >= strip.length / 2 ? -1 : 0} aria-hidden={i >= strip.length / 2}>
+                  <img src={w.thumb} alt={w.title} loading="lazy" draggable="false" />
+                  <span className="wm-cap">
+                    <strong>{w.title}</strong>
+                    <small>{w.category}</small>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </section>
@@ -158,11 +164,8 @@ export default function Home() {
       {/* Call to action */}
       <section className="section container reveal">
         <div className="cta-band">
-          <img className="cta-mark" src="mark-white.png" alt="" />
-          <div className="cta-copy">
-            <h2>Let us make something people remember.</h2>
-            <p>Tell us what you need and we will come back with a quote.</p>
-          </div>
+          <h2>Let us make something people remember.</h2>
+          <p>Tell us what you need and we will come back with a quote.</p>
           <div className="cta-actions">
             <Link to="/order" className="btn white lg">
               Start your order

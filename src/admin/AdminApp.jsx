@@ -12,7 +12,7 @@ import Orders from './Orders.jsx'
 import Settings from './Settings.jsx'
 
 function Shell() {
-  const { logout } = useAuth()
+  const { logout, user } = useAuth()
   const { orders, error } = useAdminData()
   const loc = useLocation()
   const fresh = orders.filter((o) => o.status === 'new').length
@@ -47,9 +47,16 @@ function Shell() {
           <Link to="/">
             <ExternalLink size={18} /> View website
           </Link>
-          <button onClick={logout}>
-            <LogOut size={18} /> Sign out
-          </button>
+          <div className="user-chip">
+            <span className="avatar">{(user?.email || 'A')[0].toUpperCase()}</span>
+            <span>
+              <strong>Owner</strong>
+              <small>{user?.email}</small>
+            </span>
+            <button className="icon-btn" onClick={logout} aria-label="Sign out" title="Sign out">
+              <LogOut size={16} />
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -83,6 +90,7 @@ function Shell() {
           </div>
         )}
         <RouteBoundary>
+          <div className="page-anim" key={loc.pathname}>
           <Routes location={loc}>
             <Route path="/admin" element={<Dashboard orders={orders} />} />
             <Route path="/admin/works" element={<Works />} />
@@ -91,6 +99,7 @@ function Shell() {
             <Route path="/admin/settings" element={<Settings />} />
             <Route path="*" element={<Navigate to="/admin" replace />} />
           </Routes>
+          </div>
         </RouteBoundary>
       </main>
       <TabBar items={nav} />

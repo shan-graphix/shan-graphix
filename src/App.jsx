@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Link, NavLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { Home as HomeIcon, LayoutGrid, Sparkles, ShoppingBag, User, Mail, Phone, MessageCircle } from 'lucide-react'
 import { PublicDataProvider, useSettings } from './context/PublicData.jsx'
 import TabBar from './components/TabBar.jsx'
@@ -25,21 +25,23 @@ const NAV = [
 function SiteHeader() {
   return (
     <header className="site-header">
-      <div className="container bar">
-        <Link to="/" className="brand">
-          <img src="logo.png" alt="" width="32" height="32" />
-          <span>Shan Graphix</span>
-        </Link>
-        <nav className="top-links" aria-label="Main">
-          {NAV.map(({ to, label, end }) => (
-            <NavLink key={to} to={to} end={end}>
-              {label}
-            </NavLink>
-          ))}
-        </nav>
-        <Link to="/order" className="btn primary sm top-cta">
-          Order now
-        </Link>
+      <div className="container">
+        <div className="bar">
+          <Link to="/" className="brand">
+            <img src="logo.png" alt="" width="30" height="30" />
+            <span>Shan Graphix</span>
+          </Link>
+          <nav className="top-links" aria-label="Main">
+            {NAV.map(({ to, label, end }) => (
+              <NavLink key={to} to={to} end={end}>
+                {label}
+              </NavLink>
+            ))}
+          </nav>
+          <Link to="/order" className="btn primary sm top-cta">
+            Order now
+          </Link>
+        </div>
       </div>
     </header>
   )
@@ -117,6 +119,25 @@ function PublicApp() {
 
 export default function App() {
   const loc = useLocation()
+  const navigate = useNavigate()
+  // Typing  site-address/#/admin  while already on the site opens the admin sign-in too.
+  useEffect(() => {
+    const onHash = () => {
+      const h = window.location.hash
+      if (!h) return
+      window.history.replaceState(null, '', window.location.pathname + window.location.search)
+      if (h === '#/admin' || h === '#admin') navigate('/admin')
+    }
+    window.addEventListener('hashchange', onHash)
+    return () => window.removeEventListener('hashchange', onHash)
+  }, [navigate])
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('sg_path', loc.pathname + loc.search)
+    } catch {
+      /* private mode: ignore */
+    }
+  }, [loc.pathname, loc.search])
   if (loc.pathname.startsWith('/admin'))
     return (
       <Suspense

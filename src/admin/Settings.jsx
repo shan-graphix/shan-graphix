@@ -7,6 +7,7 @@ import { useDocument } from '../hooks/useFirestore.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useToast } from '../components/Toast.jsx'
 import { Field, PageHead, Skeleton, Spinner } from '../components/ui.jsx'
+import Select from '../components/Select.jsx'
 import { ICON_NAMES } from '../lib/icons.js'
 import { clamp } from '../lib/format.js'
 
@@ -73,9 +74,7 @@ export default function Settings() {
         {f.services.map((s, i) => (
           <div key={s.id} className="svc-edit">
             <div className="two">
-              <select value={s.icon} onChange={(e) => setSvc(i, 'icon', e.target.value)} aria-label="Icon">
-                {ICON_NAMES.map((n) => <option key={n}>{n}</option>)}
-              </select>
+              <Select size="sm" value={s.icon} onChange={(v) => setSvc(i, 'icon', v)} options={ICON_NAMES} ariaLabel="Icon" />
               <input value={s.price} onChange={(e) => setSvc(i, 'price', e.target.value)} placeholder="Price, e.g. From Rs. 2,500" maxLength={40} />
             </div>
             <input value={s.title} onChange={(e) => setSvc(i, 'title', e.target.value)} placeholder="Service name" maxLength={60} />

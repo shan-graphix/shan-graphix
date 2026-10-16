@@ -3,7 +3,7 @@
 Website and admin app for Shan Graphix. React + Vite + Firebase (free plan only).
 
 - **Public site:** Home, Work, Services, Order, About. Phones get a bottom bar; computers get a top bar.
-- **Admin:** open `your-site-address/#/admin` (or tap the logo 5 times on the About page). Google sign-in for `vimukthih55@gmail.com` only.
+- **Admin:** open `your-site-address/#/admin` once (the address then cleans itself), or tap the logo 5 times on the About page. Google sign-in for `vimukthih55@gmail.com` only.
 - **Images** are compressed in your browser and stored inside Firestore, so Firebase Storage (paid) is not used.
 
 ## Firebase (one time)
