@@ -13,6 +13,13 @@ const STEPS = [
   { n: '03', t: 'Approve and receive', d: 'Once you are happy, you get final files ready to print or post.' },
 ]
 
+// The soft red spotlight on a card follows the mouse
+function spot(e) {
+  const r = e.currentTarget.getBoundingClientRect()
+  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`)
+  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`)
+}
+
 export default function Home() {
   const s = useSettings()
   const { works, loading } = useWorks()
@@ -21,7 +28,6 @@ export default function Home() {
   const pick = featured.length ? featured : works
   const wa = waLink(s.whatsapp, 'Hi Shan Graphix, I would like to order a design.')
   const words = s.tagline.split(' ')
-  const chips = s.services.slice(0, 4)
   useReveal(loading, works.length)
 
   // Repeat the works so the moving strip always fills the screen, then double it for a seamless loop
@@ -39,14 +45,13 @@ export default function Home() {
     <>
       {/* Hero */}
       <section className="hero container">
-        {chips.map((sv, i) => {
-          const Icon = getIcon(sv.icon)
-          return (
-            <div key={sv.id} className={`float-chip fc${i}`} aria-hidden="true">
-              <Icon size={15} /> {sv.title}
-            </div>
-          )
-        })}
+        <div className="hero-fx" aria-hidden="true">
+          <i className="hf-line" />
+          <i className="hf-ring r1" />
+          <i className="hf-ring r2" />
+          <i className="hf-ring r3" />
+          <i className="hf-orbit" />
+        </div>
         <span className="pill">
           <i /> Graphic design studio{s.location ? ` · ${s.location}` : ''}
         </span>
@@ -128,18 +133,19 @@ export default function Home() {
             </Link>
           }
         />
-        <div className="svc-grid">
-          {s.services.map((sv) => {
+        <div className="svc-bento">
+          {s.services.map((sv, i) => {
             const Icon = getIcon(sv.icon)
             return (
-              <Link key={sv.id} to={`/order?service=${encodeURIComponent(sv.title)}`} className="svc-card card">
+              <Link key={sv.id} to={`/order?service=${encodeURIComponent(sv.title)}`} className={`svc-tile ${i === 0 ? 'feature' : ''}`} onMouseMove={spot}>
+                <span className="svc-num">{String(i + 1).padStart(2, '0')}</span>
                 <span className="icon-box">
                   <Icon size={20} />
                 </span>
                 <h3>{sv.title}</h3>
                 <p>{sv.desc}</p>
                 <span className="svc-link">
-                  Order <ArrowRight size={14} />
+                  {sv.price ? sv.price : 'Order now'} <ArrowRight size={15} />
                 </span>
               </Link>
             )
@@ -164,6 +170,7 @@ export default function Home() {
       {/* Call to action */}
       <section className="section container reveal">
         <div className="cta-band">
+          <img className="cta-mark" src="mark-white.png" alt="" />
           <h2>Let us make something people remember.</h2>
           <p>Tell us what you need and we will come back with a quote.</p>
           <div className="cta-actions">

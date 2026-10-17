@@ -8,14 +8,16 @@ function Stat({ Icon, label, value, prefix = '', tone, to }) {
   const n = useCountUp(value)
   return (
     <Link to={to} className="stat" style={{ '--tone': tone }}>
-      <span className="stat-icon">
-        <Icon size={18} />
+      <span className="stat-top">
+        <small>{label}</small>
+        <span className="stat-icon">
+          <Icon size={16} />
+        </span>
       </span>
       <strong>
         {prefix}
         {n.toLocaleString()}
       </strong>
-      <small>{label}</small>
     </Link>
   )
 }
@@ -36,17 +38,17 @@ function WeekChart({ orders }) {
   const max = Math.max(1, ...counts)
   const total = counts.reduce((a, b) => a + b, 0)
   return (
-    <div className="chart card">
-      <div className="chart-head">
-        <strong>Orders this week</strong>
+    <div className="panel">
+      <div className="panel-head">
+        <h2>Orders this week</h2>
         <small>{total} total</small>
       </div>
       <div className="bars">
         {counts.map((c, i) => (
           <div className="bar-col" key={i}>
-            <span className="bar-val">{c}</span>
+            <span className="bar-val">{c || ''}</span>
             <div className="bar-track">
-              <i style={{ height: `max(5px, ${(c / max) * 100}%)`, animationDelay: `${i * 70}ms` }} className={c === 0 ? 'zero' : ''} />
+              <i style={{ height: c ? `${Math.max(12, (c / max) * 100)}%` : '4px', animationDelay: `${i * 70}ms` }} className={c === 0 ? 'zero' : ''} />
             </div>
             <small>{days[i].toLocaleDateString(undefined, { weekday: 'short' })}</small>
           </div>
@@ -75,7 +77,7 @@ export default function Dashboard({ orders }) {
       <header className="page-head">
         <div>
           <h1>{hello}</h1>
-          <p>Here is what is happening at Shan Graphix.</p>
+          <p>Here is how things look today.</p>
         </div>
         <Link to="/admin/works" className="btn primary">
           <ImagePlus size={16} /> Add work
@@ -84,15 +86,15 @@ export default function Dashboard({ orders }) {
 
       <div className="stats">
         <Stat Icon={Inbox} label="New requests" value={count('new')} tone="#B90D0D" to="/admin/orders" />
-        <Stat Icon={Hourglass} label="In progress" value={count('progress')} tone="#D98A00" to="/admin/orders" />
+        <Stat Icon={Hourglass} label="In progress" value={count('progress')} tone="#C77D00" to="/admin/orders" />
         <Stat Icon={CheckCircle2} label="Delivered, unpaid" value={unpaid} tone="#2F6FE4" to="/admin/orders" />
         <Stat Icon={Wallet} label="Paid this month" value={monthIncome} prefix="Rs. " tone="#1F9D55" to="/admin/orders" />
       </div>
 
       <div className="dash-grid">
         <WeekChart orders={orders} />
-        <section className="recent">
-          <div className="block-head">
+        <div className="panel">
+          <div className="panel-head">
             <h2>Recent orders</h2>
             <Link to="/admin/orders" className="link">
               See all <ArrowRight size={15} />
@@ -101,9 +103,9 @@ export default function Dashboard({ orders }) {
           {orders.length === 0 ? (
             <EmptyState icon={Inbox} title="No orders yet" text="New requests from your website will appear here." />
           ) : (
-            <div className="stack">
+            <div className="list">
               {orders.slice(0, 5).map((o) => (
-                <Link key={o.id} to="/admin/orders" className="row card">
+                <Link key={o.id} to="/admin/orders" className="list-row">
                   <span className="avatar">{(o.name || '?')[0].toUpperCase()}</span>
                   <span className="row-main">
                     <strong>{o.name}</strong>
@@ -116,7 +118,7 @@ export default function Dashboard({ orders }) {
               ))}
             </div>
           )}
-        </section>
+        </div>
       </div>
     </>
   )

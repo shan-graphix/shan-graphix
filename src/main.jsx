@@ -44,10 +44,8 @@ function startPage() {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <div className="bg-fx" aria-hidden="true">
-      <i className="blob b1" />
-      <i className="blob b2" />
-      <i className="blob b3" />
-      <div className="bg-grid" />
+      <div className="bg-dots" />
+      <div className="bg-fade" />
     </div>
     <Boundary>
       <MemoryRouter initialEntries={[startPage()]}>
